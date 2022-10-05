@@ -1,0 +1,141 @@
+---
+title: "Mapping"
+output: html_document
+---
+
+# What I am trying to communicate
+
+My mom is a nurse and always says there is a difference between having health care
+coverage and having access.
+
+For this assignment we will look at barriers that could impact someone from better
+access to health care such as number of hospitals, number of doctors, and wait time
+to be seen at the hospital.
+
+In addition to these three barriers will be compared against life expectancy at
+birth.
+
+These data will inform the reader of potential delays to medical access medial
+in different states.
+
+# Data Source
+
+Data came from the following sources and was pre-processed in the Python files
+attaches to this repo.
+
+### Hospital Count Per State
+
+American Hospital Directory
+https://www.ahd.com/state_statistics.html
+
+Data claims to be most up-to date based on last report but does not give dates.
+Most of the report seems to be financial records and as I am interested in
+number of hospitals a lag-time is acceptable.
+
+### Life Expectancy at Birth Per State
+
+CDC
+https://www.cdc.gov/nchs/pressroom/sosmap/life_expectancy/life_expectancy.htm
+
+Data taken from 2020 census. Results may be more extreme due to the effects
+of the pandemic.
+
+### Doctros per 1000k popupation per state
+
+National Library of Medicine
+
+https://www.ncbi.nlm.nih.gov/books/NBK569310/table/ch2.tab16/?report=objectonly
+
+Data is from 2019.
+
+### Average Wait Time at Hospital
+
+Business Insider
+
+https://www.businessinsider.com/how-long-it-takes-to-see-a-doctor-by-state-2016-3
+
+This data is a little dated from 2016. We will proceed with using but take it with
+a grain of salt.
+
+# Spatial Units Being Displayed
+
+The states are the units being displayed.
+
+# Decisions to Best Communicate the Data.
+
+There were a few things I thought about to help formulate the data:
+
+1) Remove regions not being shown (like DC) to keep scaling more accurate
+2) Color scheme and theme should be the same. Readers should see the trend "darker
+color means better" access all plots.
+
+
+# Read in Data
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggdendro)
+library(viridis)
+library(gridExtra)
+
+map = map_data("state")
+hospital_data = read.csv("hospital_count.csv", header = TRUE)
+life_exp = read.csv("Life_Expectancy_at_Birth_by_State_corrected.csv", header = TRUE)
+docs_per_cap = read.csv("docs_per_cap.csv", header = TRUE)
+avg_wait_to_be_seen_at_hos = read.csv("average_time_to_see_doc_at_hos_corrected.csv", header = TRUE)
+
+map1 = map_data("state") %>% left_join(hospital_data, by = c("region" = "state"))
+map2 = map_data("state") %>% left_join(life_exp, by = c("region" = "STATE"))
+map3 = map_data("state") %>% left_join(docs_per_cap, by = c("region" = "state"))
+map4 = map_data("state") %>% left_join(avg_wait_to_be_seen_at_hos, by = c("region" = "STATE"))
+```
+
+```{r}
+hos_counts_st = ggplot(data = map1, mapping = aes(x = long, y = lat,group = group, fill = hospital_count)) +
+                geom_polygon(color="white") +
+                ggdendro::theme_dendro() +
+                scale_fill_viridis(option="magma", direction=-1) +
+                guides(fill=guide_legend(title="Hospital Count")) +
+                coord_map() + 
+                ggtitle("Number of Hospitals")
+```
+
+```{r}
+life_exp_rate = ggplot(data = map2, mapping = aes(x = long, y = lat,group = group, fill = RATE)) +
+                geom_polygon(color="white") +
+                ggdendro::theme_dendro() +
+                scale_fill_viridis(option="magma", direction=-1) +
+                guides(fill=guide_legend(title="Life Expectancy at Birth")) +
+                coord_map() + 
+                ggtitle("Life Expectancy at Birth")
+```
+
+```{r}
+doc_per_100_k = ggplot(data = map3, mapping = aes(x = long, y = lat,group = group, fill = doc_per_100k)) +
+                geom_polygon(color="white") +
+                ggdendro::theme_dendro() +
+                scale_fill_viridis(option="magma", direction=-1) +
+                guides(fill=guide_legend(title="Doctors per Capita")) +
+                coord_map() + 
+                ggtitle("Doctors Per 100k Population")
+
+```
+
+```{r}
+hos_wait_time = ggplot(data = map4, mapping = aes(x = long, y = lat,group = group, fill = TIME)) +
+                geom_polygon(color="white") +
+                ggdendro::theme_dendro() +
+                scale_fill_viridis(option="magma", direction=1) +
+                guides(fill=guide_legend(title="Time (min)")) +
+                coord_map() + 
+                ggtitle("Average Hospital Wait Time")
+```
+
+
+```{r}
+hos_counts_st
+life_exp_rate
+doc_per_100_k
+hos_wait_time
+```
+
